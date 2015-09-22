@@ -16,6 +16,7 @@ namespace System.Linq.Dynamic
     {
         #region IQueryable Extensions
 
+
         public static IQueryable<T> Where<T>(this IQueryable<T> source, string predicate, params object[] values)
         {
             return (IQueryable<T>)Where((IQueryable)source, predicate, values);
@@ -33,6 +34,40 @@ namespace System.Linq.Dynamic
                     source.Expression, Expression.Quote(lambda)));
         }
 
+        public static IQueryable DynamicDistinct(this IQueryable source)
+        {
+            if (source == null) throw new ArgumentNullException("source");
+            return source.Provider.CreateQuery(Expression.Call(typeof(Queryable), "Distinct",new Type[] { source.ElementType },source.Expression));
+        }
+
+        public static object DefaultIfEmpty(this IQueryable source)
+        {
+            if (source == null) throw new ArgumentNullException("source");
+            return source.Provider.Execute(Expression.Call(typeof(Queryable), "DefaultIfEmpty",new Type[] { source.ElementType },source.Expression));
+        }
+
+        public static IQueryable<T> Join<T>(this IQueryable<T> outer, IQueryable<T> inner, string outerAlias, string innerAlias, string outerSelector, string innerSelector, string resultsSelector, params object[] values)
+        {
+            return (IQueryable<T>)Join((IQueryable)outer, (IQueryable)inner, outerAlias, innerAlias, outerSelector, innerSelector, resultsSelector, values);
+        }
+        
+        public static IQueryable Join(this IQueryable outer, IQueryable inner, string outerAlias, string innerAlias, string outerSelector, string innerSelector, string resultsSelector, params object[] values)
+        {
+            if (inner == null) throw new ArgumentNullException("inner");
+            if (outerSelector == null) throw new ArgumentNullException("outerSelector");
+            if (innerSelector == null) throw new ArgumentNullException("innerSelector");
+            if (resultsSelector == null) throw new ArgumentNullException("resultsSelctor");
+
+            LambdaExpression outerSelectorLambda = DynamicExpression.ParseLambda(outer.ElementType, null, outerSelector, values);
+            LambdaExpression innerSelectorLambda = DynamicExpression.ParseLambda(inner.ElementType, null, innerSelector, values);
+
+            ParameterExpression[] parameters = new ParameterExpression[] {
+            Expression.Parameter(outer.ElementType, outerAlias), Expression.Parameter(inner.ElementType, innerAlias) };
+            LambdaExpression resultsSelectorLambda = DynamicExpression.ParseLambda(parameters, null, resultsSelector, values);
+
+            return outer.Provider.CreateQuery(Expression.Call(typeof(Queryable), "Join",new Type[] { outer.ElementType, inner.ElementType, outerSelectorLambda.Body.Type, resultsSelectorLambda.Body.Type },outer.Expression, inner.Expression, Expression.Quote(outerSelectorLambda), Expression.Quote(innerSelectorLambda), Expression.Quote(resultsSelectorLambda)));
+        }
+       
         public static IQueryable Select(this IQueryable source, string selector, params object[] values)
         {
             if (source == null) throw new ArgumentNullException("source");
