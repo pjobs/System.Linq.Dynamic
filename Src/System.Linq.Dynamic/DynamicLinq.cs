@@ -34,12 +34,6 @@ namespace System.Linq.Dynamic
                     source.Expression, Expression.Quote(lambda)));
         }
 
-        public static IQueryable DynamicDistinct(this IQueryable source)
-        {
-            if (source == null) throw new ArgumentNullException("source");
-            return source.Provider.CreateQuery(Expression.Call(typeof(Queryable), "Distinct",new Type[] { source.ElementType },source.Expression));
-        }
-
         public static IQueryable<T> Join<T>(this IQueryable<T> outer, IQueryable<T> inner, string outerAlias, string innerAlias, string outerSelector, string innerSelector, string resultsSelector, params object[] values)
         {
             return (IQueryable<T>)Join((IQueryable)outer, (IQueryable)inner, outerAlias, innerAlias, outerSelector, innerSelector, resultsSelector, values);
@@ -163,6 +157,13 @@ namespace System.Linq.Dynamic
                     new Type[] { source.ElementType },
                     source.Expression));
         }
+
+        public static object DefaultIfEmpty(this IQueryable source)
+        {
+            if (source == null) throw new ArgumentNullException("source");
+            return source.Provider.Execute(Expression.Call(typeof(Queryable), "DefaultIfEmpty", new Type[] { source.ElementType }, source.Expression));
+        }
+
 
         /// <summary>
         /// Dynamically runs an aggregate function on the IQueryable.
